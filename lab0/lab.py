@@ -52,12 +52,13 @@ def mix(sound1, sound2, p):
     return mixed
 
 
-def echo_filter(samples, sample_delay, scale):
+def echo_filter(samples, num_echos, sample_delay, scale):
     """
     Apply Echo filter to given list of samples.
 
     Args:
         samples (list): list of samples to apply filter on.
+        num_echos (int): # additional copies of samples to add.
         sample_delay (int): amount by which each sample should be offset.
         scale (float): amount by which each sample should be scaled.
 
@@ -65,22 +66,25 @@ def echo_filter(samples, sample_delay, scale):
         (list)
     """
 
-    new_samples = samples.copy()
+    result = [0] * (len(samples) + sample_delay * num_echos)
 
-    # index at which first echoed sample will append.
-    start_idx = len(samples)
+    for i in range(num_echos + 1):
 
-    for _ in range(sample_delay):
-        # index whose element will scaled and inserted at start_idx
-        scale_idx = start_idx - sample_delay
+        offset = sample_delay * i
+        scaled = []
 
-        if scale_idx < 0:
-            new_samples.append(0)
-        else:
-            new_samples.append(scale * samples[scale_idx])
-        start_idx += 1
+        # Append scaled samples
 
-    return new_samples
+        for sample in samples:
+            scaled.append(sample * (scale**i))
+
+        # add offset to scaled samples
+        samples_to_add = [0] * offset + scaled
+
+        for idx, _ in enumerate(samples_to_add):
+            result[idx] += samples_to_add[idx]
+
+    return result
 
 
 def echo(sound, num_echos, delay, scale):
@@ -101,13 +105,9 @@ def echo(sound, num_echos, delay, scale):
 
     echoed = {"rate": sound["rate"]}
 
-    left, right = sound["left"], sound["right"]
-
-    for _ in range(num_echos):
-        left = echo_filter(left, sample_delay, scale)
-        right = echo_filter(right, sample_delay, scale)
-
-    echoed["left"], echoed["right"] = left, right
+    echoed["left"] = echo_filter(sound["left"], num_echos, sample_delay, scale)
+    echoed["right"] = echo_filter(
+        sound["right"], num_echos, sample_delay, scale)
 
     return echoed
 

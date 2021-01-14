@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-import os
-import lab
 import copy
 import json
+import os
 import pickle
 
+import lab
 import pytest
 
 TEST_DIRECTORY = os.path.dirname(__file__)
@@ -13,18 +13,23 @@ TEST_DIRECTORY = os.path.dirname(__file__)
 
 def compare_sounds(result, expected, eps=1e-6):
     # well formed?
-    assert isinstance(result['rate'], int), 'Sampling rate should be an integer'
-    assert len(result['left']) == len(result['right']), 'Left and Right channels do not have the same length'
+    assert isinstance(
+        result['rate'], int), 'Sampling rate should be an integer'
+    assert len(result['left']) == len(result['right']
+                                      ), 'Left and Right channels do not have the same length'
 
     # matches expected?
     assert result['rate'] == expected['rate'], 'Sampling rates do not match'
     assert len(result['left']) == len(expected['left']), 'Lengths do not match'
+
     for ix, ((res_l, res_r), (exp_l, exp_r)) in enumerate(zip(zip(result['left'], result['right']), zip(expected['left'], expected['right']))):
-        assert abs(res_l-exp_l) <= eps and abs(res_r-exp_r) < eps, f'Values at index {ix} do not match.'
+        assert abs(res_l-exp_l) <= eps and abs(res_r -
+                                               exp_r) < eps, f'Values at index {ix} do not match.'
 
 
 def compare_against_file(x, fname):
     compare_sounds(x, lab.load_wav(fname), eps=(2/(2**15-1)))
+
 
 def load_pickle_pair(name):
     with open(os.path.join(TEST_DIRECTORY, 'test_inputs', name), 'rb') as f:
@@ -35,14 +40,14 @@ def load_pickle_pair(name):
 def test_backwards_small():
     inp = {
         'rate': 20,
-        'left': [1,2,3,4,5,6],
-        'right': [7,6,5,4,3,2],
+        'left': [1, 2, 3, 4, 5, 6],
+        'right': [7, 6, 5, 4, 3, 2],
     }
     inp2 = copy.deepcopy(inp)
     out = {
         'rate': 20,
-        'left': [6,5,4,3,2,1],
-        'right': [2,3,4,5,6,7],
+        'left': [6, 5, 4, 3, 2, 1],
+        'right': [2, 3, 4, 5, 6, 7],
     }
     compare_sounds(lab.backwards(inp), out)
     assert inp == inp2, 'be careful not to modify the input!'
@@ -51,15 +56,18 @@ def test_backwards_small():
 def test_backwards_real():
     inp = lab.load_wav(os.path.join(TEST_DIRECTORY, 'sounds', 'hello.wav'))
     inp2 = copy.deepcopy(inp)
-    outfile = os.path.join(TEST_DIRECTORY, 'test_outputs', 'hello_backwards.wav')
+    outfile = os.path.join(
+        TEST_DIRECTORY, 'test_outputs', 'hello_backwards.wav')
     compare_against_file(lab.backwards(inp), outfile)
     assert inp == inp2, 'be careful not to modify the input!'
+
 
 def test_backwards_random_1():
     inps, exp = load_pickle_pair('backwards_01.pickle')
     inps2 = copy.deepcopy(inps)
     compare_sounds(lab.backwards(*inps), exp)
     assert inps == inps2, 'be careful not to modify the input!'
+
 
 def test_backwards_random_2():
     inps, exp = load_pickle_pair('backwards_02.pickle')
@@ -71,13 +79,13 @@ def test_backwards_random_2():
 def test_mix_small():
     s1 = {
         'rate': 30,
-        'left': [1,2,3,4,5,6],
-        'right': [7,6,5,4,3,2],
+        'left': [1, 2, 3, 4, 5, 6],
+        'right': [7, 6, 5, 4, 3, 2],
     }
     s2 = {
         'rate': 20,
-        'left': [1,2,3,4,5,6],
-        'right': [7,6,5,4,3,2],
+        'left': [1, 2, 3, 4, 5, 6],
+        'right': [7, 6, 5, 4, 3, 2],
     }
     s3 = {
         'rate': 30,
@@ -132,8 +140,8 @@ def test_echo_small():
     inp2 = copy.deepcopy(inp)
     exp = {
         'rate': 9,
-        'left': [1,2,3, 0,0, 0.7,1.4,2.1, 0,0, 0.49,0.98,1.47],
-        'right': [0,4,0, 0,0, 0,2.8,0, 0,0, 0,1.96,0],
+        'left': [1, 2, 3, 0, 0, 0.7, 1.4, 2.1, 0, 0, 0.49, 0.98, 1.47],
+        'right': [0, 4, 0, 0, 0, 0, 2.8, 0, 0, 0, 0, 1.96, 0],
     }
     compare_sounds(lab.echo(inp, 2, 0.6, 0.7), exp)
     assert inp == inp2, 'be careful not to modify the inputs!'
@@ -191,6 +199,7 @@ def test_pan_random_1():
     compare_sounds(lab.pan(*inps), exp)
     assert inps == inps2, 'be careful not to modify the input!'
 
+
 def test_pan_random_2():
     inps, exp = load_pickle_pair('pan_02.pickle')
     inps2 = copy.deepcopy(inps)
@@ -220,17 +229,20 @@ def test_remove_vocals_random_1():
     compare_sounds(lab.remove_vocals(*inps), exp)
     assert inps == inps2, 'be careful not to modify the input!'
 
+
 def test_remove_vocals_random_2():
     inps, exp = load_pickle_pair('remove_vocals_02.pickle')
     inps2 = copy.deepcopy(inps)
     compare_sounds(lab.remove_vocals(*inps), exp)
     assert inps == inps2, 'be careful not to modify the input!'
 
+
 def test_remove_vocals_random_3():
     inps, exp = load_pickle_pair('remove_vocals_03.pickle')
     inps2 = copy.deepcopy(inps)
     compare_sounds(lab.remove_vocals(*inps), exp)
     assert inps == inps2, 'be careful not to modify the input!'
+
 
 if __name__ == '__main__':
     import sys
@@ -247,7 +259,8 @@ if __name__ == '__main__':
         def pytest_runtest_logreport(self, report):
             if report.when != 'call':
                 return
-            self.results.setdefault(report.outcome, []).append(report.head_line)
+            self.results.setdefault(
+                report.outcome, []).append(report.head_line)
 
         def pytest_collection_modifyitems(self, items):
             self.results['total'] = [i.name for i in items]
@@ -255,7 +268,9 @@ if __name__ == '__main__':
         def pytest_unconfigure(self, config):
             print(json.dumps(self.results))
 
-    args = ['-v', __file__] if len(sys.argv) == 1 else ['-v', *('%s::%s' % (__file__, i) for i in sys.argv[1:])]
+    args = ['-v', __file__] if len(sys.argv) == 1 else ['-v',
+                                                        *('%s::%s' % (__file__, i) for i in sys.argv[1:])]
+
     if os.environ.get('CATSOOP'):
         args.insert(0, '--color=yes')
     kwargs = {'plugins': [TestData()]} if os.environ.get('CATSOOP') else {}
