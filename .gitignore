@@ -2,6 +2,8 @@
 
 __pycache__/
 
-*.swp
+*swp
+
+*swo
 
 .ipynb_checkpoints/
