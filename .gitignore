@@ -7,3 +7,5 @@ __pycache__/
 *swo
 
 .ipynb_checkpoints/
+.pytest_cache/
+*.pyc
