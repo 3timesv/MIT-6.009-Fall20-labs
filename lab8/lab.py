@@ -15,7 +15,8 @@ class Symbol:
     def __sub__(self, other):
         return Sub(self, other)
 
-    __rsub__ = __sub__
+    def __rsub__(self, other):
+        return Sub(other, self)
 
     def __mul__(self, other):
         return Mul(self, other)
@@ -24,8 +25,10 @@ class Symbol:
 
     def __truediv__(self, other):
         return Div(self, other)
+    
+    def __rtruediv__(self, other):
+        return Div(other, self)
 
-    __rtruediv__ = __truediv__
 
 
 class Var(Symbol):
@@ -44,12 +47,15 @@ class Var(Symbol):
 
     def deriv(self, var):
         if var == self.name:
-            return 1
+            return Num(1)
 
-        return 0
+        return Num(0)
 
     def simplify(self):
         return self
+
+    def eval(self, mapping):
+        return mapping[self.name]
 
 
 class Num(Symbol):
@@ -67,10 +73,13 @@ class Num(Symbol):
         return 'Num(' + repr(self.n) + ')'
 
     def deriv(self, var):
-        return 0
+        return Num(0)
 
     def simplify(self):
         return self
+
+    def eval(self, mapping):
+        return self.n
 
 
 class BinOp(Symbol):
@@ -97,7 +106,7 @@ class BinOp(Symbol):
         l_exp = self._wrap(self.left)
         r_exp = self._wrap(self.right)
 
-        if self.op == '-' or self.op == '/':
+        if isinstance(self.right, BinOp) and (self.op == '-' or self.op == '/'):
             if (self.order[self.op] == self.order[self.right.op]):
                 r_exp = '(' + r_exp + ')'
 
@@ -112,9 +121,6 @@ class BinOp(Symbol):
 
         return result
 
-    def is_both_num(self):
-        return isinstance(self.left, Num) and isinstance(self.right, Num)
-
 
 class Add(BinOp):
     def __init__(self, left, right):
@@ -128,16 +134,24 @@ class Add(BinOp):
         return self.left.deriv(var) + self.right.deriv(var)
 
     def simplify(self):
-        if self.is_both_num():
-            print("add both num", self.left, self.right)
-            return Num(self.left.n + self.right.n)
+        left_exp = self.left.simplify()
+        right_exp = self.right.simplify()
 
-        if isinstance(self.left, Num) and (self.left.n == 0):
-            return self.right.simplify()
-        if isinstance(self.right, Num) and (self.right.n == 0):
-            return self.left.simplify()
+        if isinstance(left_exp, Num) and isinstance(right_exp, Num):
+            return Num(left_exp.n + right_exp.n)
 
-        return self.left.simplify() + self.right.simplify()
+        if isinstance(left_exp, Num) and (left_exp.n == 0):
+            return right_exp
+
+        if isinstance(right_exp, Num) and (right_exp.n == 0):
+            return left_exp
+
+        result = left_exp + right_exp
+
+        return result
+
+    def eval(self, mapping):
+        return self.left.eval(mapping) + self.right.eval(mapping)
 
 
 class Sub(BinOp):
@@ -152,15 +166,22 @@ class Sub(BinOp):
         return self.left.deriv(var) - self.right.deriv(var)
 
     def simplify(self):
-        if self.is_both_num():
-            return Num(self.left.n - self.right.n)
+        left_exp = self.left.simplify()
+        right_exp = self.right.simplify()
 
-        if isinstance(self.left, Num) and (self.left.n == 0):
-            return self.right.simplify()
-        if isinstance(self.right, Num) and (self.right.n == 0):
-            return self.left.simplify()
+        if isinstance(left_exp, Num) and isinstance(right_exp, Num):
+            return Num(left_exp.n - right_exp.n)
 
-        return self.left.simplify() - self.right.simplify()
+#        if isinstance(left_exp, Num) and (left_exp.n == 0):
+#            return right_exp
+
+        if isinstance(right_exp, Num) and (right_exp.n == 0):
+            return left_exp
+
+        return left_exp - right_exp
+
+    def eval(self, mapping):
+        return self.left.eval(mapping) - self.right.eval(mapping)
 
 
 class Mul(BinOp):
@@ -178,23 +199,28 @@ class Mul(BinOp):
         return left_exp + right_exp
 
     def simplify(self):
-        if isinstance(self.left, Num):
-            if self.left.n == 0:
-                return 0
-            elif self.left.n == 1:
-                return self.right.simplify()
+        left_exp = self.left.simplify()
+        right_exp = self.right.simplify()
 
-        if isinstance(self.right, Num):
-            if self.right.n == 0:
-                return 0
-            elif self.right.n == 1:
-                return self.left.simplify()
+        if isinstance(left_exp, Num):
+            if left_exp.n == 0:
+                return Num(0)
+            elif left_exp.n == 1:
+                return right_exp
 
-        if self.is_both_num():
-            return Num(self.left.n * self.right.n)
+        if isinstance(right_exp, Num):
+            if right_exp.n == 0:
+                return Num(0)
+            elif right_exp.n == 1:
+                return left_exp
 
-        return self.left.simplify() * self.right.simplify()
+        if isinstance(left_exp, Num) and isinstance(right_exp, Num):
+            return Num(left_exp.n * right_exp.n)
 
+        return left_exp * right_exp
+
+    def eval(self, mapping):
+        return self.left.eval(mapping) * self.right.eval(mapping)
 
 
 class Div(BinOp):
@@ -215,13 +241,21 @@ class Div(BinOp):
         return numerator / denominator
 
     def simplify(self):
-        if self.is_both_num() and (self.right.n == 0):
-            return Num(self.left.n / self.right.n)
+        left_exp = self.left.simplify()
+        right_exp = self.right.simplify()
 
-        if isinstance(self.left, Num) and (self.left.n == 0):
-            return 0
+        if isinstance(left_exp, Num) and (left_exp.n == 0):
+            return Num(0)
 
-        return self.left.simplify() / self.right.simplify()
+        if isinstance(right_exp, Num) and (right_exp.n == 1):
+            return left_exp
+        if isinstance(left_exp, Num) and isinstance(right_exp, Num):
+            return Num(left_exp.n / right_exp.n)
+
+        return left_exp / right_exp
+
+    def eval(self, mapping):
+        return self.left.eval(mapping) / self.right.eval(mapping)
 
 
 if __name__ == '__main__':
@@ -229,6 +263,4 @@ if __name__ == '__main__':
     x = Var('x')
     y = Var('y')
     z = 2*x - x*y + 3*y
-    import pdb; pdb.set_trace()
-
-    print(z.deriv('x').simplify())
+    print(z.deriv('y').simplify())
