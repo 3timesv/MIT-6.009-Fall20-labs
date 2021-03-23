@@ -25,10 +25,9 @@ class Symbol:
 
     def __truediv__(self, other):
         return Div(self, other)
-    
+
     def __rtruediv__(self, other):
         return Div(other, self)
-
 
 
 class Var(Symbol):
@@ -107,7 +106,7 @@ class BinOp(Symbol):
         r_exp = self._wrap(self.right)
 
         if isinstance(self.right, BinOp) and (self.op == '-' or self.op == '/'):
-            if (self.order[self.op] == self.order[self.right.op]):
+            if self.order[self.op] == self.order[self.right.op]:
                 r_exp = '(' + r_exp + ')'
 
         return l_exp + ' ' + self.op + ' ' + r_exp
@@ -171,9 +170,6 @@ class Sub(BinOp):
 
         if isinstance(left_exp, Num) and isinstance(right_exp, Num):
             return Num(left_exp.n - right_exp.n)
-
-#        if isinstance(left_exp, Num) and (left_exp.n == 0):
-#            return right_exp
 
         if isinstance(right_exp, Num) and (right_exp.n == 0):
             return left_exp
@@ -249,6 +245,7 @@ class Div(BinOp):
 
         if isinstance(right_exp, Num) and (right_exp.n == 1):
             return left_exp
+
         if isinstance(left_exp, Num) and isinstance(right_exp, Num):
             return Num(left_exp.n / right_exp.n)
 
@@ -256,6 +253,70 @@ class Div(BinOp):
 
     def eval(self, mapping):
         return self.left.eval(mapping) / self.right.eval(mapping)
+
+
+def tokenize(input_string):
+    DIGITS = "0123456789"
+    OPS = "+-*/"
+    result = []
+
+    for char in input_string:
+        if char == ' ':
+            continue
+
+        # Check whether char should be concatneted to last added char
+
+        if result != [] and result[-1][-1] in DIGITS+'-' and char in DIGITS:
+            if result[-1][-1] == '-' and result[-2] not in OPS + '(':
+                result.append(char)
+            else:
+                result[-1] += char
+        else:
+            result.append(char)
+
+    return result
+
+
+def get_op_instance(left, right, op):
+    if op == '+':
+        return Add(left, right)
+    elif op == '-':
+        return Sub(left, right)
+    elif op == '*':
+        return Mul(left, right)
+    else:
+        return Div(left, right)
+
+
+def parse(tokens):
+    DIGITS = "0123456789"
+
+    def parse_expression(index):
+        if tokens[index] == '(':
+            left_exp, op_index = parse_expression(index+1)
+            right_exp, end_index = parse_expression(op_index+1)
+
+            op = tokens[op_index]
+            parsed_exp = get_op_instance(left_exp, right_exp, op)
+            next_index = end_index + 1
+
+            return parsed_exp, next_index
+
+        elif tokens[index][-1] in DIGITS:
+            return Num(int(tokens[index])), index+1
+
+        else:
+            return Var(tokens[index]), index+1
+
+    parsed_expression, _ = parse_expression(0)
+
+    return parsed_expression
+
+
+def sym(input_string):
+    tokens = tokenize(input_string)
+
+    return parse(tokens)
 
 
 if __name__ == '__main__':
