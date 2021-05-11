@@ -49,6 +49,7 @@ def run_continued_evaluations(ins):
         else:
             args = (i, env)
         out = t(*args)
+        print(f"out {out} on {args}")
         if out['ok']:
             env = out['output'][1]
         if out['ok']:
